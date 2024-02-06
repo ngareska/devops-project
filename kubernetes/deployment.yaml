@@ -4,8 +4,9 @@ metadata:
   name: kiii-project-config
   namespace: kiii
 data:
-  POSTGRES_DB: e-shop
-  POSTGRES_USER: postgres
+  SPRING_DATASOURCE_URL: jdbc:postgresql://kiii-project-service:5432/e-shop
+  POSTGRES_USERNAME: postgres
+  SPRING_DATASOURCE_USERNAME: postgres
 ---
 apiVersion: v1
 kind: Secret
@@ -14,7 +15,7 @@ metadata:
   namespace: kiii
 type: Opaque
 data:
-  password: bmluczEyMzQ=
+  SPRING_DATASOURCE_PASSWORD: bmluczEyMzQ=
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -22,10 +23,16 @@ metadata:
   name: kiii-project-deployment
   namespace: kiii
 spec:
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
       app: kiii-project
+  minReadySeconds: 25
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   template:
     metadata:
       labels:
@@ -35,18 +42,21 @@ spec:
         - name: kiii-project
           image: nikolinagareska/kiiiproject:latest
           imagePullPolicy: Always
-          resources:
-            limits:
-              memory: "128Mi"
-              cpu: "500m"
           ports:
             - containerPort: 9090
-          envFrom:
-            - configMapRef:
-                name: kiii-project-config
           env:
-            - name: POSTGRES_PASSWORD
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-config
+                  key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-config
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: kiii-project-secret
-                  key: password
+                  key: SPRING_DATASOURCE_PASSWORD

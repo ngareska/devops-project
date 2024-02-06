@@ -14,17 +14,17 @@ metadata:
   namespace: kiii
 type: Opaque
 data:
-  password: bmluczEyMzQ=
+  POSTGRES_USER: cG9zdGdyZXM=
+  POSTGRES_PASSWORD: bmluczEyMzQ=
 ---
-kind: PersistentVolumeClaim
 apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
   name: kiii-project-postgres-pvc
   namespace: kiii
   labels:
     app: postgres
 spec:
-  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
@@ -51,18 +51,22 @@ spec:
       containers:
         - name: postgres
           image: postgres:latest
-          envFrom:
-            - configMapRef:
-                name: kiii-project-postgres-config
           env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-postgres-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: kiii-project-postgres-config
+                  key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: kiii-project-postgres-secret
-                  key: password
-          ports:
-            - containerPort: 5432
-              name: postgres-port
+                  key: POSTGRES_PASSWORD
           volumeMounts:
             - name: kiii-project-postgres-data
               mountPath: /var/lib/postgresql/data
@@ -82,3 +86,4 @@ spec:
   ports:
     - protocol: TCP
       port: 5432
+  type: LoadBalancer
